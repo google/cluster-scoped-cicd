@@ -1,0 +1,53 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kaniko-test
+spec:
+  #serviceAccountName: harbor-sa
+  containers:
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:latest
+      args: [
+        "--dockerfile=Dockerfile",
+        "--context=git://github.com/jmahboob/en60573181su20",
+        "--context-sub-path=gcp/container",
+        "--destination=HARBOR.YOURDOMAIN.COM/YOURFOLDER"
+      ]
+      volumeMounts:
+        - name: kaniko-sa-secret
+          mountPath: /kaniko/.docker/
+      env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /secret/kaniko-sa.key
+        - name: GIT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: private-repo-secret
+              key: username
+        - name: GIT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: private-repo-secret
+              key: password
+  restartPolicy: Never
+  volumes:
+    - name: kaniko-sa-secret
+      secret:
+        secretName: regcred
+        items:
+          - key: .dockerconfigjson
+            path: config.json

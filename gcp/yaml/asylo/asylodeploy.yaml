@@ -1,0 +1,48 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: asylo-deploy
+spec:
+  params:
+    - name: path
+      type: string
+      description: |
+        Path to the manifest to APPLY
+    - name: yamlPathToImage
+      type: string
+      description: |
+        The path to the image to replace
+  resources:
+    inputs:
+      - name: source
+        type: git
+      - name: image
+        type: image
+  steps:
+    - name: ls
+      image: mikefarah/yq
+      command: ["ls"]
+      args:
+        - "/workspace"
+        - "-R"
+    - name: run-kubectl
+      image: lachlanevenson/k8s-kubectl
+      command: ["kubectl"]
+      args:
+        - "apply"
+        - "-f"
+        - "$(params.path)"

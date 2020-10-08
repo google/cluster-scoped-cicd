@@ -1,0 +1,82 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: build-and-push
+spec:
+  params:
+    - name: pathToDockerFile
+      type: string
+      description: Path to the Dockerfile blob
+      default: $(resources.inputs.test-git.path)/Dockerfile
+    - name: pathToContext
+      type: string
+      description: |
+        Kaniko build context
+      default: $(resources.inputs.test-git.path)
+  resources:
+    inputs:
+      - name: test-git
+        type: git
+    outputs:
+      - name: registry
+        type: image
+  steps:
+    - name: ls
+      image: mikefarah/yq
+      command:
+        - /bin/ls
+      args:
+        - -R
+        - /tekton/home/.docker/
+   #- name: cat
+   #image: mikefarah/yq
+   #   command:
+   #     - /bin/cat
+   #   args:
+   #     - /tekton/home/.docker/config.json
+    - name: env
+      image: mikefarah/yq
+      command:
+        - /bin/printenv
+    - name: build-and-push
+      #image: gcr.io/kaniko-project/executor:v0.17.1
+      image: gcr.io/kaniko-project/executor:latest
+      env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /secret/kaniko-sa.key
+        - name: "DOCKER_CONFIG"
+          value: "/tekton/home/.docker/"
+      volumeMounts:
+        - name: kaniko-sa-secret
+          mountPath: /tekton/home/.docker/
+      command:
+        - /kaniko/executor
+      args:
+        - --dockerfile=$(params.pathToDockerFile)
+        - --destination=$(resources.outputs.registry.url)
+        - --context=$(params.pathToContext)
+        - --skip-tls-verify
+        - --skip-tls-verify-pull
+        - --skip-tls-verify-registry=harbor.default.svc.cluster.local
+        - --verbosity=debug
+  volumes:
+    - name: kaniko-sa-secret
+      secret:
+        secretName: regcred
+        items:
+          - key: .dockerconfigjson
+            path: config.json

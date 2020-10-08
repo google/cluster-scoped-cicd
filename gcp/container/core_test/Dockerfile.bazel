@@ -1,0 +1,13 @@
+FROM l.gcr.io/google/bazel:latest
+
+WORKDIR /workdir
+
+COPY . /workdir
+
+RUN ["apt-get", "update"]
+RUN ["apt-get", "install", "-y", "libssl-dev"]
+RUN ["ls", "-la", "/workdir/main/test"]
+RUN ["bazel", "build", "//main/...", "--sandbox_debug"]
+
+ENTRYPOINT ["./bazel-bin/main/hello-world"]
+CMD [", World!"]

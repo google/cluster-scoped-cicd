@@ -1,0 +1,11 @@
+FROM gcr.io/asylo-framework/asylo:buildenv-v0.5.2
+
+WORKDIR /workdir
+
+COPY . /workdir
+
+RUN ["apt-get", "update"]
+RUN ["bazel", "build", "--config=sgx-sim", ":asylo-hello-world"]
+
+ENTRYPOINT ["./bazel-bin/asylo-hello-world"]
+CMD ["World!"]

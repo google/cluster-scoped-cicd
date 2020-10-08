@@ -1,0 +1,57 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: en60573181su20-pipeline
+spec:
+  resources:
+    - name: source-repo
+      type: git
+    - name: registry
+      type: image
+  tasks:
+    - name: build-and-push
+      taskRef:
+        name: build-and-push
+      params:
+        - name: pathToDockerFile
+          value: Dockerfile
+        - name: pathToContext
+          value: /workspace/test-git/gcp/container
+      resources:
+        inputs:
+          - name: test-git
+            resource: source-repo
+        outputs:
+          - name: registry
+            resource: registry
+    - name: deploy
+      taskRef:
+        name: deploy-with-kubectl
+      resources:
+        inputs:
+          - name: source
+            resource: source-repo
+          - name: image
+            resource: registry
+            from:
+              - build-and-push
+      params:
+        - name: path
+          value: /workspace/source/gcp/container/container.yaml
+        - name: yamlPathToImage
+          value: "spec.template.spec.containers[0].image"
+

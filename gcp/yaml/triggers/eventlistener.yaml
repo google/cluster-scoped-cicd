@@ -1,0 +1,82 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:
+  name: trigger-template
+  namespace: default
+spec:
+  params:
+    - name: gitrevision
+      default: master
+    - name: gitrespositoryurl
+    - name: namespace
+      default: default
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        name: en60573181su20-run-$(uid)
+        namespace: default
+      spec:
+        serviceAccountName: harbor-sa
+        pipelineRef:
+          name: en60573181su20-pipeline
+        resources:
+          - name: source-repo
+            resourceSpec:
+              type: git
+              params:
+                - name: revision
+                  value: $(tt.params.gitrevision)
+                - name: url
+                  value: $(tt.params.gitrespositoryurl)
+          - name: registry
+            resourceSpec:
+              type: image
+              params:
+                - name: url
+                  value: HARBOR.YOURSITE.COM/YOURFOLDER
+
+---
+
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerBinding
+metadata:
+  name: pipeline-binding
+  namespace: default
+spec:
+  params:
+    - name: gitrevision
+      value: $(body.head_commit.id)
+    - name: namespace
+      value: default
+    - name: gitrespositoryurl
+      value: "https://github.com/$(body.repository.full_name)"
+
+---
+
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: EventListener
+metadata:
+  name: webhook-listener
+  namespace: default
+spec:
+  serviceAccountName: private-repo-sa
+  triggers:
+    - bindings:
+      - ref: pipeline-binding
+      template:
+        name: trigger-template
