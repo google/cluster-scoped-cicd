@@ -2,7 +2,7 @@
 
 This work was done in completion of the requirements for JHU EN 605 731 81 SU20 - Survey of Cloud Computing Security (towards fullfilment of a M.S. in Computer Science).
 
-![Full Pipeline](https://github.com/jmahboob/en60573181su20/blob/master/images/fullpipeline.jpg)
+![Full Pipeline](./images/fullpipeline.jpg)
 
 ## Project Goals
 
